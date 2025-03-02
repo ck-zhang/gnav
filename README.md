@@ -5,7 +5,7 @@ Navigate GNOME workspaces efficiently with **GNAV**, integrated with Wofi for fu
 ## Installation
 
 ```bash
-go install github.com/ck-zhang/gnav
+go install github.com/ck-zhang/gnav@latest
 ```
 
 ## Usage
