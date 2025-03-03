@@ -55,12 +55,12 @@ func saveConfig() error {
 // -----------------------------------------------------------------------------
 
 func getSystemWorkspaceCount() (int, error) {
-	out, err := exec.Command("gsettings", "get",
-		"org.gnome.desktop.wm.preferences", "num-workspaces").Output()
+	out, err := exec.Command("wmctrl", "-d").Output()
 	if err != nil {
 		return 0, err
 	}
-	return strconv.Atoi(strings.TrimSpace(string(out)))
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	return len(lines), nil
 }
 
 func getDynamic() (bool, error) {
@@ -90,8 +90,11 @@ func switchWorkspace(idx int) error {
 }
 
 func renameLocal(index int, newName string) error {
-	if index < 1 || index > len(cfg.Names) {
-		return fmt.Errorf("local index %d out of range", index)
+	if index < 1 {
+		return fmt.Errorf("invalid index: %d", index)
+	}
+	for len(cfg.Names) < index {
+		cfg.Names = append(cfg.Names, fmt.Sprintf("Workspace %d", len(cfg.Names)+1))
 	}
 	cfg.Names[index-1] = newName
 	return saveConfig()
@@ -260,18 +263,23 @@ func runTUI() error {
 		s, _ := getSystemWorkspaceCount()
 		list.Clear()
 		for i := 0; i < s; i++ {
-			var n string
+			var nm string
 			if i < len(cfg.Names) {
-				n = cfg.Names[i]
+				nm = cfg.Names[i]
 			} else {
-				n = fmt.Sprintf("Workspace %d", i+1)
+				nm = fmt.Sprintf("Workspace %d", i+1)
 			}
-			list.AddItem(fmt.Sprintf("(%d) %s", i+1, n), "", 0, nil)
+			list.AddItem(fmt.Sprintf("(%d) %s", i+1, nm), "", 0, nil)
 		}
 	}
 
 	list.SetSelectedFunc(func(index int, _, _ string, _ rune) {
-		switchWorkspace(index + 1)
+		sCount, _ := getSystemWorkspaceCount()
+		if index < sCount {
+			switchWorkspace(index + 1)
+		} else if index == sCount {
+			switchWorkspace(index + 1)
+		}
 	})
 
 	list.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
@@ -302,7 +310,7 @@ func runTUI() error {
 			createDialog(reload, tui)
 			return nil
 		case 'z', 'Z':
-			toggleDynamic(tui)
+			toggleDynamic(tui, reload)
 			return nil
 		}
 		return ev
@@ -330,6 +338,7 @@ func renameDialog(idx int, refresh func(), tui *TUI) {
 	} else {
 		cur = fmt.Sprintf("Workspace %d", idx)
 	}
+
 	form.AddInputField("Name", cur, 20, nil, nil)
 	form.AddButton("OK", func() {
 		newN := form.GetFormItemByLabel("Name").(*tview.InputField).GetText()
@@ -366,7 +375,7 @@ func createDialog(refresh func(), tui *TUI) {
 	tui.app.SetRoot(form, true).SetFocus(form)
 }
 
-func toggleDynamic(tui *TUI) {
+func toggleDynamic(tui *TUI, refresh func()) {
 	cur, err := getDynamic()
 	if err != nil {
 		showModal(tui, fmt.Sprintf("Error: %v", err), "OK", nil)
@@ -377,6 +386,8 @@ func toggleDynamic(tui *TUI) {
 		showModal(tui, fmt.Sprintf("Error setting dynamic: %v", e), "OK", nil)
 		return
 	}
+	refresh()
+
 	msg := "Dynamic Workspaces = OFF"
 	if nv {
 		msg = "Dynamic Workspaces = ON"
