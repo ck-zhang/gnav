@@ -233,7 +233,7 @@ func runTUI() error {
 	head := tview.NewTextView()
 	head.SetText("GNAV TUI").SetTextAlign(tview.AlignCenter)
 
-	footText := `[↑/↓ or j/k] Move  [Enter] Switch  [R]ename  [N]ew  [Z]Dynamic  [Q/Esc]Quit`
+	footText := `[↑/↓ or j/k] Move  [Enter] Switch  [R]ename  [N]ew  [Z]Dynamic  [Shift+J/K] Rearrange  [Q/Esc]Quit`
 	foot := tview.NewTextView()
 	foot.SetText(footText)
 
@@ -311,6 +311,24 @@ func runTUI() error {
 			return nil
 		case 'z', 'Z':
 			toggleDynamic(tui, reload)
+			return nil
+		case 'J':
+			i := list.GetCurrentItem()
+			if i < list.GetItemCount()-1 {
+				cfg.Names[i], cfg.Names[i+1] = cfg.Names[i+1], cfg.Names[i]
+				_ = saveConfig()
+				reload()
+				list.SetCurrentItem(i + 1)
+			}
+			return nil
+		case 'K':
+			i := list.GetCurrentItem()
+			if i > 0 {
+				cfg.Names[i], cfg.Names[i-1] = cfg.Names[i-1], cfg.Names[i]
+				_ = saveConfig()
+				reload()
+				list.SetCurrentItem(i - 1)
+			}
 			return nil
 		}
 		return ev
