@@ -1,5 +1,7 @@
 # GNAV: GNOME Workspace Navigator
 
+![Demo](https://github.com/user-attachments/assets/9727f5c4-6ed2-437d-ab1b-1e8098a9fa17)
+
 Navigate GNOME workspaces efficiently with **GNAV**, integrated with Wofi for fuzzy-search workspace switching 🚀
 
 ## Installation
