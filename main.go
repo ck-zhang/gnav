@@ -63,6 +63,20 @@ func getSystemWorkspaceCount() (int, error) {
 	return len(lines), nil
 }
 
+func getActiveWorkspaceIndex() (int, error) {
+	out, err := exec.Command("wmctrl", "-d").Output()
+	if err != nil {
+		return -1, err
+	}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	for i, line := range lines {
+		if strings.Contains(line, "*") {
+			return i, nil
+		}
+	}
+	return -1, errors.New("no active workspace found")
+}
+
 func getDynamic() (bool, error) {
 	out, err := exec.Command("gsettings", "get",
 		"org.gnome.mutter", "dynamic-workspaces").Output()
@@ -130,6 +144,7 @@ func wofiIntegration() error {
 	if err != nil {
 		return err
 	}
+	activeIdx, _ := getActiveWorkspaceIndex()
 	for i := 0; i < sc; i++ {
 		var name string
 		if i < len(cfg.Names) {
@@ -137,7 +152,11 @@ func wofiIntegration() error {
 		} else {
 			name = fmt.Sprintf("Workspace %d", i+1)
 		}
-		fmt.Printf("%d: %s\n", i+1, name)
+		if i == activeIdx {
+			fmt.Printf("<span foreground='#ff5555'>%d: %s</span>\n", i+1, name)
+		} else {
+			fmt.Printf("%d: %s\n", i+1, name)
+		}
 	}
 	return nil
 }
@@ -170,6 +189,8 @@ func wofiRun() error {
 	if sc < 1 {
 		return errors.New("no system workspaces")
 	}
+	activeIdx, _ := getActiveWorkspaceIndex()
+
 	var buf bytes.Buffer
 	for i := 0; i < sc; i++ {
 		var nm string
@@ -178,9 +199,15 @@ func wofiRun() error {
 		} else {
 			nm = fmt.Sprintf("Workspace %d", i+1)
 		}
-		fmt.Fprintf(&buf, "%d: %s\n", i+1, nm)
+		if i == activeIdx {
+			buf.WriteString(
+				fmt.Sprintf("<span foreground='#ff5555'>%d: %s</span>\n", i+1, nm),
+			)
+		} else {
+			buf.WriteString(fmt.Sprintf("%d: %s\n", i+1, nm))
+		}
 	}
-	cmd := exec.Command("wofi", "--show", "dmenu", "-i", "--allow-images")
+	cmd := exec.Command("wofi", "--show", "dmenu", "-i", "--allow-images", "--allow-markup")
 	cmd.Stdin = &buf
 	out, err2 := cmd.Output()
 	if err2 != nil {
