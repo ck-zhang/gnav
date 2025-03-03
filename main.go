@@ -143,6 +143,7 @@ func wofiIntegration() error {
 	if err := loadConfig(); err != nil {
 		return err
 	}
+	dyn, _ := getDynamic()
 	sc, err := getSystemWorkspaceCount()
 	if err != nil {
 		return err
@@ -150,7 +151,10 @@ func wofiIntegration() error {
 	activeIdx, _ := getActiveWorkspaceIndex()
 	for i := 0; i < len(cfg.Names); i++ {
 		name := cfg.Names[i]
-		if i == activeIdx && i < sc {
+		if dyn && i == sc-1 && i >= 0 {
+			name = "New Workspace"
+		}
+		if i == activeIdx {
 			fmt.Printf("<span foreground='#ff5555'>%d: %s</span>\n", i+1, name)
 		} else {
 			fmt.Printf("%d: %s\n", i+1, name)
@@ -183,6 +187,7 @@ func wofiRun() error {
 	if err := loadConfig(); err != nil {
 		return err
 	}
+	dyn, _ := getDynamic()
 	sc, err := getSystemWorkspaceCount()
 	if err != nil {
 		return err
@@ -192,10 +197,11 @@ func wofiRun() error {
 	var buf bytes.Buffer
 	for i := 0; i < len(cfg.Names); i++ {
 		nm := cfg.Names[i]
-		if i == activeIdx && i < sc {
-			buf.WriteString(
-				fmt.Sprintf("<span foreground='#ff5555'>%d: %s</span>\n", i+1, nm),
-			)
+		if dyn && i == sc-1 && i >= 0 {
+			nm = "New Workspace"
+		}
+		if i == activeIdx {
+			buf.WriteString(fmt.Sprintf("<span foreground='#ff5555'>%d: %s</span>\n", i+1, nm))
 		} else {
 			buf.WriteString(fmt.Sprintf("%d: %s\n", i+1, nm))
 		}
@@ -262,12 +268,16 @@ func runTUI() error {
 	list.SetTitle(" Workspaces ")
 	list.ShowSecondaryText(false)
 
+	dyn, _ := getDynamic()
 	for i := 0; i < sc; i++ {
 		var nm string
 		if i < len(cfg.Names) {
 			nm = cfg.Names[i]
 		} else {
 			nm = fmt.Sprintf("Workspace %d", i+1)
+		}
+		if dyn && i == sc-1 {
+			nm = "New Workspace"
 		}
 		list.AddItem(fmt.Sprintf("(%d) %s", i+1, nm), "", 0, nil)
 	}
@@ -282,12 +292,16 @@ func runTUI() error {
 		_ = loadConfig()
 		s, _ := getSystemWorkspaceCount()
 		list.Clear()
+		dynRefresh, _ := getDynamic()
 		for i := 0; i < s; i++ {
 			var nm string
 			if i < len(cfg.Names) {
 				nm = cfg.Names[i]
 			} else {
 				nm = fmt.Sprintf("Workspace %d", i+1)
+			}
+			if dynRefresh && i == s-1 {
+				nm = "New Workspace"
 			}
 			list.AddItem(fmt.Sprintf("(%d) %s", i+1, nm), "", 0, nil)
 		}
@@ -296,8 +310,6 @@ func runTUI() error {
 	list.SetSelectedFunc(func(index int, _, _ string, _ rune) {
 		sCount, _ := getSystemWorkspaceCount()
 		if index < sCount {
-			switchWorkspace(index + 1)
-		} else if index == sCount {
 			switchWorkspace(index + 1)
 		}
 	})
