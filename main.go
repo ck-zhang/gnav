@@ -149,9 +149,14 @@ func wofiIntegration() error {
 		return err
 	}
 	activeIdx, _ := getActiveWorkspaceIndex()
-	for i := 0; i < len(cfg.Names); i++ {
-		name := cfg.Names[i]
-		if dyn && i == sc-1 && i >= 0 {
+	for i := 0; i < sc; i++ {
+		var name string
+		if i < len(cfg.Names) {
+			name = cfg.Names[i]
+		} else {
+			name = fmt.Sprintf("Workspace %d", i+1)
+		}
+		if dyn && i == sc-1 {
 			name = "New Workspace"
 		}
 		if i == activeIdx {
@@ -195,9 +200,14 @@ func wofiRun() error {
 	activeIdx, _ := getActiveWorkspaceIndex()
 
 	var buf bytes.Buffer
-	for i := 0; i < len(cfg.Names); i++ {
-		nm := cfg.Names[i]
-		if dyn && i == sc-1 && i >= 0 {
+	for i := 0; i < sc; i++ {
+		var nm string
+		if i < len(cfg.Names) {
+			nm = cfg.Names[i]
+		} else {
+			nm = fmt.Sprintf("Workspace %d", i+1)
+		}
+		if dyn && i == sc-1 {
 			nm = "New Workspace"
 		}
 		if i == activeIdx {
