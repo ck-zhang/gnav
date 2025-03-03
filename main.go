@@ -259,9 +259,8 @@ func runTUI() error {
 	head := tview.NewTextView()
 	head.SetText("GNAV TUI").SetTextAlign(tview.AlignCenter)
 
-	footText := `[↑/↓ or j/k] Move  [Enter] Switch  [R]ename  [N]ew  [Z]Dynamic  [Shift+J/K] Rearrange  [X]Remove  [G]Last  [g]First  [Q/Esc]Quit`
 	foot := tview.NewTextView()
-	foot.SetText(footText)
+	foot.SetText("[↑/↓] Move  [Enter] Switch  [X] Remove  [?] More  [Q/Esc] Quit")
 
 	list := tview.NewList()
 	list.SetBorder(true)
@@ -382,6 +381,19 @@ func runTUI() error {
 			return nil
 		case 'g':
 			list.SetCurrentItem(0)
+			return nil
+		case '?':
+			showModal(tui,
+				"Enter: Switch\n"+
+					"↑/↓ or j/k: Move\n"+
+					"R: Rename\n"+
+					"N: New Workspace\n"+
+					"Z: Toggle Dynamic\n"+
+					"X: Remove\n"+
+					"Shift+J/K: Rearrange\n"+
+					"G/g: Last/First\n"+
+					"Q/Esc: Quit",
+				"OK", nil)
 			return nil
 		}
 		return ev
