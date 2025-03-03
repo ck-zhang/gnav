@@ -259,7 +259,7 @@ func runTUI() error {
 	head := tview.NewTextView()
 	head.SetText("GNAV TUI").SetTextAlign(tview.AlignCenter)
 
-	footText := `[↑/↓ or j/k] Move  [Enter] Switch  [R]ename  [N]ew  [Z]Dynamic  [Shift+J/K] Rearrange  [X]Remove  [Q/Esc]Quit`
+	footText := `[↑/↓ or j/k] Move  [Enter] Switch  [R]ename  [N]ew  [Z]Dynamic  [Shift+J/K] Rearrange  [X]Remove  [G]Last  [g]First  [Q/Esc]Quit`
 	foot := tview.NewTextView()
 	foot.SetText(footText)
 
@@ -376,6 +376,12 @@ func runTUI() error {
 				}
 				list.SetCurrentItem(i)
 			}
+			return nil
+		case 'G':
+			list.SetCurrentItem(list.GetItemCount() - 1)
+			return nil
+		case 'g':
+			list.SetCurrentItem(0)
 			return nil
 		}
 		return ev
