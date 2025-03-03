@@ -140,19 +140,17 @@ func createWorkspaces(num int) error {
 // -----------------------------------------------------------------------------
 
 func wofiIntegration() error {
+	if err := loadConfig(); err != nil {
+		return err
+	}
 	sc, err := getSystemWorkspaceCount()
 	if err != nil {
 		return err
 	}
 	activeIdx, _ := getActiveWorkspaceIndex()
-	for i := 0; i < sc; i++ {
-		var name string
-		if i < len(cfg.Names) {
-			name = cfg.Names[i]
-		} else {
-			name = fmt.Sprintf("Workspace %d", i+1)
-		}
-		if i == activeIdx {
+	for i := 0; i < len(cfg.Names); i++ {
+		name := cfg.Names[i]
+		if i == activeIdx && i < sc {
 			fmt.Printf("<span foreground='#ff5555'>%d: %s</span>\n", i+1, name)
 		} else {
 			fmt.Printf("%d: %s\n", i+1, name)
@@ -182,24 +180,19 @@ func parseWofiSelection() error {
 }
 
 func wofiRun() error {
+	if err := loadConfig(); err != nil {
+		return err
+	}
 	sc, err := getSystemWorkspaceCount()
 	if err != nil {
 		return err
 	}
-	if sc < 1 {
-		return errors.New("no system workspaces")
-	}
 	activeIdx, _ := getActiveWorkspaceIndex()
 
 	var buf bytes.Buffer
-	for i := 0; i < sc; i++ {
-		var nm string
-		if i < len(cfg.Names) {
-			nm = cfg.Names[i]
-		} else {
-			nm = fmt.Sprintf("Workspace %d", i+1)
-		}
-		if i == activeIdx {
+	for i := 0; i < len(cfg.Names); i++ {
+		nm := cfg.Names[i]
+		if i == activeIdx && i < sc {
 			buf.WriteString(
 				fmt.Sprintf("<span foreground='#ff5555'>%d: %s</span>\n", i+1, nm),
 			)
