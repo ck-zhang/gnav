@@ -254,6 +254,8 @@ type TUI struct {
 func runTUI() error {
 	setTUIViewTheme()
 	sc, _ := getSystemWorkspaceCount()
+	activeIdx, _ := getActiveWorkspaceIndex()
+
 	app := tview.NewApplication()
 
 	head := tview.NewTextView()
@@ -268,6 +270,9 @@ func runTUI() error {
 	list.ShowSecondaryText(false)
 
 	dyn, _ := getDynamic()
+
+	var items []string
+	maxLen := 0
 	for i := 0; i < sc; i++ {
 		var nm string
 		if i < len(cfg.Names) {
@@ -278,7 +283,18 @@ func runTUI() error {
 		if dyn && i == sc-1 {
 			nm = "New Workspace"
 		}
-		list.AddItem(fmt.Sprintf("(%d) %s", i+1, nm), "", 0, nil)
+		entry := fmt.Sprintf("(%d) %s", i+1, nm)
+		if len(entry) > maxLen {
+			maxLen = len(entry)
+		}
+		items = append(items, entry)
+	}
+	for i, entry := range items {
+		if i == activeIdx {
+			list.AddItem(fmt.Sprintf("%-*s  *", maxLen, entry), "", 0, nil)
+		} else {
+			list.AddItem(entry, "", 0, nil)
+		}
 	}
 
 	tui := &TUI{
@@ -290,8 +306,11 @@ func runTUI() error {
 	reload := func() {
 		_ = loadConfig()
 		s, _ := getSystemWorkspaceCount()
-		list.Clear()
+		aIdx, _ := getActiveWorkspaceIndex()
 		dynRefresh, _ := getDynamic()
+
+		var newItems []string
+		newMax := 0
 		for i := 0; i < s; i++ {
 			var nm string
 			if i < len(cfg.Names) {
@@ -302,7 +321,20 @@ func runTUI() error {
 			if dynRefresh && i == s-1 {
 				nm = "New Workspace"
 			}
-			list.AddItem(fmt.Sprintf("(%d) %s", i+1, nm), "", 0, nil)
+			entry := fmt.Sprintf("(%d) %s", i+1, nm)
+			if len(entry) > newMax {
+				newMax = len(entry)
+			}
+			newItems = append(newItems, entry)
+		}
+
+		list.Clear()
+		for i, entry := range newItems {
+			if i == aIdx {
+				list.AddItem(fmt.Sprintf("%-*s  *", newMax, entry), "", 0, nil)
+			} else {
+				list.AddItem(entry, "", 0, nil)
+			}
 		}
 	}
 
