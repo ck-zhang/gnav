@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/gofrs/flock"
 	"github.com/rivo/tview"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -683,6 +684,16 @@ func main() {
 		Use:   "wofi-run",
 		Short: "Interactive workspace selection with wofi",
 		RunE: func(_ *cobra.Command, _ []string) error {
+			lock := flock.New("/tmp/gnav-wofi-run.lock")
+			locked, err := lock.TryLock()
+			if err != nil {
+				return err
+			}
+			if !locked {
+				return nil
+			}
+			defer lock.Close()
+
 			return wofiRun()
 		},
 	})
