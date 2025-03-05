@@ -18,6 +18,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// -----------------------------------------------------------------------------
+// Config struct + load/save
+// -----------------------------------------------------------------------------
 type Config struct {
 	Names []string `yaml:"workspace_names"`
 }
@@ -256,9 +259,11 @@ func setTUIViewTheme() {
 }
 
 type TUI struct {
-	app    *tview.Application
-	layout *tview.Flex
-	list   *tview.List
+	app       *tview.Application
+	layout    *tview.Flex
+	list      *tview.List
+	renameBox *tview.InputField
+	foot      *tview.TextView
 }
 
 func runTUI() error {
@@ -307,10 +312,13 @@ func runTUI() error {
 		}
 	}
 
+	list.SetCurrentItem(activeIdx)
+
 	tui := &TUI{
 		app:    app,
 		layout: nil,
 		list:   list,
+		foot:   foot,
 	}
 
 	reload := func() {
@@ -346,6 +354,37 @@ func runTUI() error {
 				list.AddItem(entry, "", 0, nil)
 			}
 		}
+		list.SetCurrentItem(aIdx)
+	}
+
+	startInlineRename := func(idx int) {
+		var cur string
+		if idx-1 < len(cfg.Names) {
+			cur = cfg.Names[idx-1]
+		} else {
+			cur = fmt.Sprintf("Workspace %d", idx)
+		}
+		tui.renameBox = tview.NewInputField().SetText(cur)
+		tui.renameBox.SetDoneFunc(func(key tcell.Key) {
+			switch key {
+			case tcell.KeyEnter:
+				newN := tui.renameBox.GetText()
+				if newN != "" {
+					_ = renameLocal(idx, newN)
+					reload()
+				}
+				tui.layout.RemoveItem(tui.renameBox)
+				tui.layout.AddItem(tui.foot, 1, 1, false)
+				tui.app.SetFocus(tui.list)
+			case tcell.KeyEsc:
+				tui.layout.RemoveItem(tui.renameBox)
+				tui.layout.AddItem(tui.foot, 1, 1, false)
+				tui.app.SetFocus(tui.list)
+			}
+		})
+		tui.layout.RemoveItem(tui.foot)
+		tui.layout.AddItem(tui.renameBox, 1, 1, true)
+		tui.app.SetFocus(tui.renameBox)
 	}
 
 	list.SetSelectedFunc(func(index int, _, _ string, _ rune) {
@@ -377,7 +416,7 @@ func runTUI() error {
 			return nil
 		case 'r', 'R':
 			i := list.GetCurrentItem() + 1
-			renameDialog(i, reload, tui)
+			startInlineRename(i)
 			return nil
 		case 'n', 'N':
 			createDialog(reload, tui)
@@ -441,8 +480,7 @@ func runTUI() error {
 		return ev
 	})
 
-	flex := tview.NewFlex()
-	flex.SetDirection(tview.FlexRow)
+	flex := tview.NewFlex().SetDirection(tview.FlexRow)
 	flex.AddItem(head, 1, 1, false)
 	flex.AddItem(list, 0, 6, true)
 	flex.AddItem(foot, 1, 1, false)
@@ -450,33 +488,6 @@ func runTUI() error {
 	tui.layout = flex
 	app.SetRoot(flex, true).SetFocus(list)
 	return app.Run()
-}
-
-func renameDialog(idx int, refresh func(), tui *TUI) {
-	form := tview.NewForm()
-	form.SetBorder(true)
-	form.SetTitle(fmt.Sprintf("Rename Local #%d", idx))
-
-	var cur string
-	if idx-1 < len(cfg.Names) {
-		cur = cfg.Names[idx-1]
-	} else {
-		cur = fmt.Sprintf("Workspace %d", idx)
-	}
-
-	form.AddInputField("Name", cur, 20, nil, nil)
-	form.AddButton("OK", func() {
-		newN := form.GetFormItemByLabel("Name").(*tview.InputField).GetText()
-		if newN != "" {
-			_ = renameLocal(idx, newN)
-			refresh()
-		}
-		tui.app.SetRoot(tui.layout, true).SetFocus(tui.list)
-	})
-	form.AddButton("Cancel", func() {
-		tui.app.SetRoot(tui.layout, true).SetFocus(tui.list)
-	})
-	tui.app.SetRoot(form, true).SetFocus(form)
 }
 
 func createDialog(refresh func(), tui *TUI) {
@@ -531,6 +542,37 @@ func showModal(tui *TUI, msg, label string, done func()) {
 		}
 	})
 	tui.app.SetRoot(m, false).SetFocus(m)
+}
+
+// -----------------------------------------------------------------------------
+// renameDialog (original preserved)
+// -----------------------------------------------------------------------------
+
+func renameDialog(idx int, refresh func(), tui *TUI) {
+	form := tview.NewForm()
+	form.SetBorder(true)
+	form.SetTitle(fmt.Sprintf("Rename Local #%d", idx))
+
+	var cur string
+	if idx-1 < len(cfg.Names) {
+		cur = cfg.Names[idx-1]
+	} else {
+		cur = fmt.Sprintf("Workspace %d", idx)
+	}
+
+	form.AddInputField("Name", cur, 20, nil, nil)
+	form.AddButton("OK", func() {
+		newN := form.GetFormItemByLabel("Name").(*tview.InputField).GetText()
+		if newN != "" {
+			_ = renameLocal(idx, newN)
+			refresh()
+		}
+		tui.app.SetRoot(tui.layout, true).SetFocus(tui.list)
+	})
+	form.AddButton("Cancel", func() {
+		tui.app.SetRoot(tui.layout, true).SetFocus(tui.list)
+	})
+	tui.app.SetRoot(form, true).SetFocus(form)
 }
 
 // -----------------------------------------------------------------------------
